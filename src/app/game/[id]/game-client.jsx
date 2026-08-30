@@ -11,6 +11,7 @@ import { NumericKeypad } from "@/components/numeric-keypad";
 import { applyTurn, undoLastTurn, canUndo } from "@/lib/game-engine";
 import { storeLocalGame, readLocalGame, clearLocalGame } from "@/lib/local-game-store";
 import { saveGame as saveGameAction } from "@/app/actions";
+import { playFanfare } from "@/lib/fanfare";
 
 // Rebuilds an in-memory GameState (with undo history) from a DB row loaded via loadGame().
 function gameStateFromDbRecord(record) {
@@ -98,22 +99,36 @@ export function GameClient({ gameId, initialRecord }) {
     }
   }, [gameState, gameName, gameId, persisted]);
 
+  const applyThrow = useCallback(
+    (amount) => {
+      if (!gameState) return;
+      const before = gameState.players[gameState.activePlayerIndex];
+      const wouldBust = amount > before.score || before.score - amount === 1;
+
+      const next = applyTurn(gameState, amount);
+      setGameState(next);
+      setInput("");
+
+      if (wouldBust) {
+        setFlashBust(true);
+        setTimeout(() => setFlashBust(false), 700);
+        toast.error(`BUST! ${before.name} zůstává na ${before.score}`);
+      }
+    },
+    [gameState]
+  );
+
   const confirmThrow = useCallback(() => {
-    if (!gameState || input === "") return;
-    const amount = parseInt(input, 10);
-    const before = gameState.players[gameState.activePlayerIndex];
-    const wouldBust = amount > before.score || before.score - amount === 1;
+    if (input === "") return;
+    applyThrow(parseInt(input, 10));
+  }, [input, applyThrow]);
 
-    const next = applyTurn(gameState, amount);
-    setGameState(next);
-    setInput("");
-
-    if (wouldBust) {
-      setFlashBust(true);
-      setTimeout(() => setFlashBust(false), 700);
-      toast.error(`BUST! ${before.name} zůstává na ${before.score}`);
-    }
-  }, [gameState, input]);
+  const handleQuickThrow = useCallback(
+    (amount) => {
+      applyThrow(amount);
+    },
+    [applyThrow]
+  );
 
   const handleUndo = useCallback(() => {
     if (!gameState || !canUndo(gameState)) return;
@@ -185,36 +200,36 @@ export function GameClient({ gameId, initialRecord }) {
   return (
     <div
       className={cn(
-        "flex flex-1 flex-col transition-colors duration-300",
+        "flex h-dvh flex-col overflow-hidden transition-colors duration-300",
         flashBust && "bg-destructive/15"
       )}
     >
-      <header className="flex items-center justify-between border-b border-border px-4 py-3">
+      <header className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
         <button
           onClick={() => router.push("/")}
-          className="flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+          className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
           aria-label="Domů"
         >
-          <Home className="size-5" />
+          <Home className="size-4" />
         </button>
         <div className="flex flex-col items-center">
-          <span className="text-sm font-semibold">{gameName}</span>
-          <span className="text-xs text-muted-foreground">Kolo {gameState.round}</span>
+          <span className="text-xs font-semibold">{gameName}</span>
+          <span className="text-[10px] text-muted-foreground">Kolo {gameState.round}</span>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
           className={cn(
-            "flex size-9 items-center justify-center rounded-full hover:bg-muted",
+            "flex size-8 items-center justify-center rounded-full hover:bg-muted",
             persisted ? "text-primary" : "text-muted-foreground"
           )}
           aria-label="Uložit hru"
         >
-          <Save className="size-5" />
+          <Save className="size-4" />
         </button>
       </header>
 
-      <div className="flex flex-col gap-2 px-4 py-3">
+      <div className="flex shrink-0 flex-col gap-1.5 px-3 py-2">
         {gameState.players.map((player, index) => (
           <PlayerRow
             key={player.id}
@@ -224,40 +239,39 @@ export function GameClient({ gameId, initialRecord }) {
         ))}
       </div>
 
-      <div className="flex flex-1 flex-col justify-end gap-4 px-4 pb-6 pt-2">
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-sm font-medium text-muted-foreground">
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-2 px-3 pb-3">
+        <div className="flex shrink-0 items-center justify-center gap-3">
+          <span className="text-xs font-medium text-muted-foreground">
             {activePlayer.name} hází
           </span>
-          <div className="flex h-20 items-center justify-center">
-            <span
-              className={cn(
-                "text-6xl font-black tabular-nums tracking-tight",
-                input === "" && "text-muted-foreground/40"
-              )}
-            >
-              {input === "" ? "0" : input}
-            </span>
-          </div>
+          <span
+            className={cn(
+              "text-3xl font-black tabular-nums tracking-tight leading-none",
+              input === "" && "text-muted-foreground/40"
+            )}
+          >
+            {input === "" ? "0" : input}
+          </span>
+          <button
+            type="button"
+            onClick={handleUndo}
+            disabled={!canUndo(gameState)}
+            className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:pointer-events-none disabled:opacity-30"
+            aria-label="Zpět"
+          >
+            <Undo2 className="size-4" />
+          </button>
         </div>
 
-        <NumericKeypad
-          onDigit={handleDigit}
-          onBackspace={handleBackspace}
-          onConfirm={confirmThrow}
-          disabled={saving}
-        />
-
-        <Button
-          variant="outline"
-          size="lg"
-          className="h-14 gap-2 text-base"
-          disabled={!canUndo(gameState)}
-          onClick={handleUndo}
-        >
-          <Undo2 className="size-5" />
-          Zpět
-        </Button>
+        <div className="min-h-0 flex-1">
+          <NumericKeypad
+            onDigit={handleDigit}
+            onBackspace={handleBackspace}
+            onConfirm={confirmThrow}
+            onQuickThrow={handleQuickThrow}
+            disabled={saving}
+          />
+        </div>
       </div>
     </div>
   );
@@ -268,17 +282,17 @@ function PlayerRow({ player, isActive }) {
     <motion.div
       layout
       className={cn(
-        "flex items-center justify-between rounded-2xl border px-4 py-3 transition-colors",
+        "flex items-center justify-between rounded-xl border px-3 py-1.5 transition-colors",
         isActive
           ? "border-primary bg-primary/10"
           : "border-border bg-card"
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {isActive && (
-          <span className="size-2 shrink-0 rounded-full bg-primary" />
+          <span className="size-1.5 shrink-0 rounded-full bg-primary" />
         )}
-        <span className={cn("font-medium", isActive && "text-primary")}>
+        <span className={cn("text-sm font-medium", isActive && "text-primary")}>
           {player.name}
         </span>
       </div>
@@ -290,7 +304,7 @@ function PlayerRow({ player, isActive }) {
           exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.15 }}
           className={cn(
-            "text-3xl font-black tabular-nums",
+            "text-xl font-black tabular-nums",
             isActive ? "text-primary" : "text-foreground"
           )}
         >
@@ -302,15 +316,24 @@ function PlayerRow({ player, isActive }) {
 }
 
 function WinnerScreen({ gameName, winner, players, onSave, saving, persisted, onHome }) {
+  useEffect(() => {
+    playFanfare();
+  }, []);
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-12">
+    <div className="flex h-dvh flex-col items-center justify-center gap-8 px-6 py-12">
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", duration: 0.5 }}
+        initial={{ scale: 0.6, opacity: 0, rotate: -8 }}
+        animate={{ scale: 1, opacity: 1, rotate: 0 }}
+        transition={{ type: "spring", duration: 0.6, bounce: 0.5 }}
         className="flex flex-col items-center gap-3 text-center"
       >
-        <Trophy className="size-16 text-primary" strokeWidth={1.5} />
+        <motion.div
+          animate={{ y: [0, -6, 0] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+        >
+          <Trophy className="size-20 text-primary drop-shadow-[0_0_20px_var(--color-primary)]" strokeWidth={1.5} />
+        </motion.div>
         <span className="text-sm text-muted-foreground">{gameName}</span>
         <h1 className="text-4xl font-black">{winner?.name} vyhrává!</h1>
       </motion.div>
