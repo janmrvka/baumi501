@@ -87,7 +87,7 @@ function KeypadButton({ children, onClick, disabled, variant = "default" }) {
         variant === "confirm" &&
           "bg-primary text-primary-foreground hover:bg-primary/90",
         variant === "quick" &&
-          "bg-warning/20 text-warning hover:bg-warning/30",
+          "bg-info text-info-foreground hover:brightness-125",
         disabled && "pointer-events-none opacity-40"
       )}
     >
