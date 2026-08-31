@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { nanoid } from "nanoid";
-import { Plus, X, History, Trophy, Target } from "lucide-react";
+import { Plus, X, History, Trophy, Target, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,24 +11,48 @@ import { createGameState, createPlayer } from "@/lib/game-engine";
 import { storeLocalGame } from "@/lib/local-game-store";
 
 export default function Home() {
-  const router = useRouter();
-  const [gameName, setGameName] = useState("");
-  const [playerNames, setPlayerNames] = useState(["", ""]);
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
+  );
+}
 
-  function updatePlayerName(index, value) {
-    setPlayerNames((prev) => prev.map((n, i) => (i === index ? value : n)));
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const rematchPlayers = searchParams.get("players");
+
+  const [gameName, setGameName] = useState("");
+  const [playerFields, setPlayerFields] = useState(() => {
+    const names = rematchPlayers ? rematchPlayers.split(",") : ["", ""];
+    return names.map((name) => ({ id: nanoid(6), name }));
+  });
+
+  function updatePlayerName(id, value) {
+    setPlayerFields((prev) => prev.map((f) => (f.id === id ? { ...f, name: value } : f)));
   }
 
   function addPlayerField() {
-    setPlayerNames((prev) => [...prev, ""]);
+    setPlayerFields((prev) => [...prev, { id: nanoid(6), name: "" }]);
   }
 
-  function removePlayerField(index) {
-    setPlayerNames((prev) => prev.filter((_, i) => i !== index));
+  function removePlayerField(id) {
+    setPlayerFields((prev) => prev.filter((f) => f.id !== id));
+  }
+
+  function movePlayer(index, direction) {
+    setPlayerFields((prev) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return next;
+    });
   }
 
   function startGame() {
-    const names = playerNames.map((n) => n.trim()).filter(Boolean);
+    const names = playerFields.map((f) => f.name.trim()).filter(Boolean);
     if (names.length === 0) return;
 
     const players = names.map((name) => createPlayer(nanoid(8), name));
@@ -40,7 +64,7 @@ export default function Home() {
     router.push(`/game/${id}`);
   }
 
-  const canStart = playerNames.some((n) => n.trim().length > 0);
+  const canStart = playerFields.some((f) => f.name.trim().length > 0);
 
   return (
     <div className="flex flex-1 flex-col items-center px-4 py-8 sm:py-12">
@@ -69,19 +93,39 @@ export default function Home() {
 
           <div className="flex flex-col gap-3">
             <Label>Hráči</Label>
-            {playerNames.map((name, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  placeholder={`Hráč ${index + 1}`}
-                  value={name}
-                  onChange={(e) => updatePlayerName(index, e.target.value)}
-                  className="h-12 text-base"
-                  autoFocus={index === 0}
-                />
-                {playerNames.length > 1 && (
+            {playerFields.map((field, index) => (
+              <div key={field.id} className="flex items-center gap-2">
+                <div className="flex shrink-0 flex-col">
                   <button
                     type="button"
-                    onClick={() => removePlayerField(index)}
+                    onClick={() => movePlayer(index, -1)}
+                    disabled={index === 0}
+                    className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-20"
+                    aria-label="Posunout nahoru"
+                  >
+                    <ChevronUp className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => movePlayer(index, 1)}
+                    disabled={index === playerFields.length - 1}
+                    className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-20"
+                    aria-label="Posunout dolů"
+                  >
+                    <ChevronDown className="size-4" />
+                  </button>
+                </div>
+                <Input
+                  placeholder={`Hráč ${index + 1}`}
+                  value={field.name}
+                  onChange={(e) => updatePlayerName(field.id, e.target.value)}
+                  className="h-12 text-base"
+                  autoFocus={index === 0 && !rematchPlayers}
+                />
+                {playerFields.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removePlayerField(field.id)}
                     className="flex size-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
                     aria-label="Odebrat hráče"
                   >

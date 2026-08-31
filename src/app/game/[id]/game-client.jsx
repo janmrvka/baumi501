@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Undo2, Save, Trophy, Home } from "lucide-react";
+import { Undo2, Save, Trophy, Home, Volume2, RotateCcw, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NumericKeypad } from "@/components/numeric-keypad";
@@ -156,10 +157,14 @@ export function GameClient({ gameId, initialRecord }) {
     }
   }
 
-  // Auto-persist the final result once the game finishes, if it was already being tracked in DB.
+  // Always persist the final result once the game finishes, even if the
+  // player never hit "Uložit hru" mid-game — the results listing should be
+  // complete without requiring a manual save step.
   useEffect(() => {
-    if (gameState?.status === "finished" && persisted) {
-      saveGameAction(gameId, gameName, gameState).catch((err) => console.error(err));
+    if (gameState?.status === "finished") {
+      saveGameAction(gameId, gameName, gameState)
+        .then(() => setPersisted(true))
+        .catch((err) => console.error(err));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState?.status]);
@@ -179,9 +184,10 @@ export function GameClient({ gameId, initialRecord }) {
         gameName={gameName}
         winner={winner}
         players={gameState.players}
-        onSave={handleSave}
-        saving={saving}
-        persisted={persisted}
+        onRematch={() => {
+          const names = gameState.players.map((p) => p.name);
+          router.push(`/?players=${encodeURIComponent(names.join(","))}`);
+        }}
         onHome={() => router.push("/")}
       />
     );
@@ -319,7 +325,7 @@ function PlayerRow({ player, isActive }) {
   );
 }
 
-function WinnerScreen({ gameName, winner, players, onSave, saving, persisted, onHome }) {
+function WinnerScreen({ gameName, winner, players, onRematch, onHome }) {
   return (
     <div className="flex h-dvh flex-col items-center justify-center gap-8 px-6 py-12">
       <motion.div
@@ -336,6 +342,14 @@ function WinnerScreen({ gameName, winner, players, onSave, saving, persisted, on
         </motion.div>
         <span className="text-sm text-muted-foreground">{gameName}</span>
         <h1 className="text-4xl font-black">{winner?.name} vyhrává!</h1>
+        <button
+          type="button"
+          onClick={playFanfare}
+          className="flex items-center gap-1.5 rounded-full border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
+        >
+          <Volume2 className="size-3.5" />
+          Přehrát znělku
+        </button>
       </motion.div>
 
       <div className="flex w-full max-w-sm flex-col gap-2">
@@ -356,16 +370,21 @@ function WinnerScreen({ gameName, winner, players, onSave, saving, persisted, on
       </div>
 
       <div className="flex w-full max-w-sm flex-col gap-3">
-        {!persisted && (
-          <Button size="lg" className="h-14 gap-2 text-base font-bold" onClick={onSave} disabled={saving}>
-            <Save className="size-5" />
-            {saving ? "Ukládám…" : "Uložit hru"}
-          </Button>
-        )}
+        <Button size="lg" className="h-14 gap-2 text-base font-bold" onClick={onRematch}>
+          <RotateCcw className="size-5" />
+          Opakovat hru
+        </Button>
         <Button variant="outline" size="lg" className="h-14 gap-2 text-base" onClick={onHome}>
           <Home className="size-5" />
           Zpět na start
         </Button>
+        <Link
+          href="/history"
+          className="flex h-10 items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <History className="size-4" />
+          Historie her
+        </Link>
       </div>
     </div>
   );
