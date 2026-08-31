@@ -144,7 +144,7 @@ export function GameClient({ gameId, initialRecord }) {
     if (!gameState) return;
     setSaving(true);
     try {
-      await saveGameAction(persisted ? gameId : null, gameName, gameState);
+      await saveGameAction(gameId, gameName, gameState);
       setPersisted(true);
       clearLocalGame(gameId);
       toast.success("Hra uložena");
@@ -233,7 +233,7 @@ export function GameClient({ gameId, initialRecord }) {
         </button>
       </header>
 
-      <div className="flex shrink-0 flex-col gap-1.5 px-3 py-2">
+      <div className="flex max-h-[30dvh] shrink-0 flex-col gap-1.5 overflow-y-auto px-3 py-2">
         {gameState.players.map((player, index) => (
           <PlayerRow
             key={player.id}
@@ -243,7 +243,7 @@ export function GameClient({ gameId, initialRecord }) {
         ))}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-2 px-3 pb-3">
+      <div className="flex min-h-0 shrink-0 flex-1 flex-col justify-center gap-2 px-3 pb-3">
         <div className="flex shrink-0 items-center justify-center gap-3">
           <span className="text-xs font-medium text-muted-foreground">
             {activePlayer.name} hází

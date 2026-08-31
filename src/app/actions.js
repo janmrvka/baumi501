@@ -113,6 +113,20 @@ export async function listSavedGames() {
   return rows;
 }
 
+export async function listFinishedGames() {
+  if (!db) return [];
+  const rows = await db.query.games.findMany({
+    where: eq(games.status, "finished"),
+    orderBy: desc(games.updatedAt),
+    with: {
+      players: {
+        orderBy: asc(players.orderIndex),
+      },
+    },
+  });
+  return rows;
+}
+
 export async function loadGame(gameId) {
   if (!db) return null;
   const game = await db.query.games.findFirst({

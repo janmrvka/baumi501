@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { nanoid } from "nanoid";
-import { Plus, X, History, Target } from "lucide-react";
+import { Plus, X, History, Trophy, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,14 +110,24 @@ export default function Home() {
           </Button>
         </div>
 
-        <Button
-          variant="ghost"
-          className="mt-4 h-12 w-full gap-2 text-muted-foreground"
-          onClick={() => router.push("/history")}
-        >
-          <History className="size-5" />
-          Historie her
-        </Button>
+        <div className="mt-4 flex flex-col gap-2">
+          <Button
+            variant="ghost"
+            className="h-12 w-full gap-2 text-muted-foreground"
+            onClick={() => router.push("/vysledky")}
+          >
+            <Trophy className="size-5" />
+            Výsledková listina
+          </Button>
+          <Button
+            variant="ghost"
+            className="h-12 w-full gap-2 text-muted-foreground"
+            onClick={() => router.push("/history")}
+          >
+            <History className="size-5" />
+            Uložené hry
+          </Button>
+        </div>
       </div>
     </div>
   );
