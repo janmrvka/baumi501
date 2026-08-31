@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Undo2, Save, Trophy, Home, Volume2, RotateCcw, History } from "lucide-react";
+import { Undo2, Save, Trophy, Home, Volume2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NumericKeypad } from "@/components/numeric-keypad";
@@ -379,11 +379,11 @@ function WinnerScreen({ gameName, winner, players, onRematch, onHome }) {
           Zpět na start
         </Button>
         <Link
-          href="/history"
+          href="/vysledky"
           className="flex h-10 items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
-          <History className="size-4" />
-          Historie her
+          <Trophy className="size-4" />
+          Výsledková listina
         </Link>
       </div>
     </div>

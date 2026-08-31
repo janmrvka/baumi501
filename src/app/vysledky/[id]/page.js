@@ -4,6 +4,8 @@ import { ChevronLeft, Trophy } from "lucide-react";
 import { loadGame } from "@/app/actions";
 import { cn } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export default async function VysledkyDetailPage({ params }) {
   const { id } = await params;
   const game = await loadGame(id).catch(() => null);

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ChevronLeft, Trophy, Users } from "lucide-react";
 import { listFinishedGames } from "@/app/actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function VysledkyPage() {
   const games = await listFinishedGames().catch(() => []);
 

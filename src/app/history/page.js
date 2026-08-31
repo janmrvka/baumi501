@@ -3,6 +3,8 @@ import { ChevronLeft, Trophy, Users } from "lucide-react";
 import { listSavedGames } from "@/app/actions";
 import { Badge } from "@/components/ui/badge";
 
+export const dynamic = "force-dynamic";
+
 export default async function HistoryPage() {
   const games = await listSavedGames().catch(() => []);
 
