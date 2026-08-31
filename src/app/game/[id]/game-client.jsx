@@ -256,10 +256,10 @@ export function GameClient({ gameId, initialRecord }) {
             type="button"
             onClick={handleUndo}
             disabled={!canUndo(gameState)}
-            className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:pointer-events-none disabled:opacity-30"
-            aria-label="Zpět"
+            className="flex h-8 items-center gap-1.5 rounded-full border-[1.5px] border-undo/50 px-3 text-xs font-bold text-undo hover:bg-undo/10 disabled:pointer-events-none disabled:opacity-30"
           >
-            <Undo2 className="size-4" />
+            <Undo2 className="size-3.5" />
+            Zpět
           </button>
         </div>
 
