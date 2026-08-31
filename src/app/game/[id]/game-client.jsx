@@ -113,6 +113,10 @@ export function GameClient({ gameId, initialRecord }) {
         setFlashBust(true);
         setTimeout(() => setFlashBust(false), 700);
         toast.error(`BUST! ${before.name} zůstává na ${before.score}`);
+      } else if (next.status === "finished") {
+        // Must fire synchronously inside this click handler — browsers block
+        // AudioContext creation once it's deferred into a later render's effect.
+        playFanfare();
       }
     },
     [gameState]
@@ -316,10 +320,6 @@ function PlayerRow({ player, isActive }) {
 }
 
 function WinnerScreen({ gameName, winner, players, onSave, saving, persisted, onHome }) {
-  useEffect(() => {
-    playFanfare();
-  }, []);
-
   return (
     <div className="flex h-dvh flex-col items-center justify-center gap-8 px-6 py-12">
       <motion.div
